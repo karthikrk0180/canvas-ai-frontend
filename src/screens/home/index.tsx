@@ -21,7 +21,17 @@ export default function Home() {
   const [color, setColor] = useState("rgb(255,255,255)");
   const [reset, setReset] = useState(false);
   const [result, setResult] = useState<GeneratedResult>();
+  const [latexExpression, setLatexExpression] = useState<Array<string>>([]);
+  const [latexPosition, setLatexPosition] = useState({ x: 10, y: 200 });
   const [dicOfVars, setDictOfVars] = useState({});
+
+  useEffect(() => {
+    if (latexExpression.length > 0 && window.MathJax) {
+      setTimeout(() => {
+        window.MathJax.Hub.Queue(["Typeset", window.MathJax.Hub]);
+      }, 0);
+    }
+  }, [latexExpression]);
 
   useEffect(() => {
     if (reset) {
@@ -29,6 +39,12 @@ export default function Home() {
       setReset(false);
     }
   }, [reset]);
+
+  useEffect(() => {
+    if (result) {
+      renderLatexToCanvas(result.expression, result.answer);
+    }
+  }, [result]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -42,12 +58,51 @@ export default function Home() {
         ctx.lineWidth = 3;
       }
     }
+
+    const script = document.createElement("script");
+    script.src =
+      "https://cdnjs.cloudfare.com/ajax/libs/mathjax/2.7.9/config/TeX-MML-AM_CHTML.js";
+    script.async = true;
+    document.head.appendChild(script);
+
+    script.onload = () => {
+      window.MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [
+            ["$", "$"],
+            ["\\(", "\\)"],
+          ],
+        },
+      });
+    };
+
+    return () => {
+      document.head.removeChild(script);
+    };
   }, []);
+
+  const renderLatexToCanvas = (expression: string, answer: string) => {
+    const latex = `\\(\\LARGE{${expression} = ${answer}}\\)`;
+    setLatexExpression([...latexExpression, latex]);
+
+    // Clear the main canvas
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+  };
 
   const sendData = async () => {
     const canvas = canvasRef.current;
 
     if (canvas) {
+      console.log(
+        "Sending data..",
+        `${import.meta.env.VITE_API_URL}/calculate`
+      );
       const response = await axios({
         method: "post",
         url: `${import.meta.env.VITE_API_URL}/calculate`,
