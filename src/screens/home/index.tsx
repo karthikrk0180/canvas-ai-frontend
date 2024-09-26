@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { SWATCHES } from "../../../constants";
 import { ColorSwatch, Group } from "@mantine/core";
-import { Button, buttonVariants } from "../../components/ui/button"; // Adjust the path as needed
+import { Button } from "../../components/ui/button"; // Adjust the path as needed
+import Draggable from "react-draggable";
 import axios from "axios";
 
 interface Response {
@@ -17,6 +18,7 @@ interface GeneratedResult {
 
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const draggableRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [color, setColor] = useState("rgb(255,255,255)");
   const [reset, setReset] = useState(false);
@@ -24,27 +26,6 @@ export default function Home() {
   const [latexExpression, setLatexExpression] = useState<Array<string>>([]);
   const [latexPosition, setLatexPosition] = useState({ x: 10, y: 200 });
   const [dicOfVars, setDictOfVars] = useState({});
-
-  useEffect(() => {
-    if (latexExpression.length > 0 && window.MathJax) {
-      setTimeout(() => {
-        window.MathJax.Hub.Queue(["Typeset", window.MathJax.Hub]);
-      }, 0);
-    }
-  }, [latexExpression]);
-
-  useEffect(() => {
-    if (reset) {
-      resetCanvas();
-      setReset(false);
-    }
-  }, [reset]);
-
-  useEffect(() => {
-    if (result) {
-      renderLatexToCanvas(result.expression, result.answer);
-    }
-  }, [result]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -59,9 +40,10 @@ export default function Home() {
       }
     }
 
+    // Load MathJax
     const script = document.createElement("script");
     script.src =
-      "https://cdnjs.cloudfare.com/ajax/libs/mathjax/2.7.9/config/TeX-MML-AM_CHTML.js";
+      "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-MML-AM_CHTML";
     script.async = true;
     document.head.appendChild(script);
 
@@ -81,11 +63,34 @@ export default function Home() {
     };
   }, []);
 
+  useEffect(() => {
+    if (latexExpression.length > 0 && window.MathJax) {
+      setTimeout(() => {
+        window.MathJax.Hub.Queue(["Typeset", window.MathJax.Hub]);
+      }, 0);
+    }
+  }, [latexExpression]);
+
+  useEffect(() => {
+    if (reset) {
+      resetCanvas();
+      setLatexExpression([]);
+      setResult(undefined);
+      setDictOfVars({});
+      setReset(false);
+    }
+  }, [reset]);
+
+  useEffect(() => {
+    if (result) {
+      renderLatexToCanvas(result.expression, result.answer);
+    }
+  }, [result]);
+
   const renderLatexToCanvas = (expression: string, answer: string) => {
     const latex = `\\(\\LARGE{${expression} = ${answer}}\\)`;
-    setLatexExpression([...latexExpression, latex]);
+    setLatexExpression((prev) => [...prev, latex]);
 
-    // Clear the main canvas
     const canvas = canvasRef.current;
     if (canvas) {
       const ctx = canvas.getContext("2d");
@@ -99,21 +104,30 @@ export default function Home() {
     const canvas = canvasRef.current;
 
     if (canvas) {
-      console.log(
-        "Sending data..",
-        `${import.meta.env.VITE_API_URL}/calculate`
-      );
-      const response = await axios({
-        method: "post",
-        url: `${import.meta.env.VITE_API_URL}/calculate`,
-        data: {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/calculate`,
+        {
           image: canvas.toDataURL("image/png"),
           dict_of_vars: dicOfVars,
-        },
-      });
+        }
+      );
 
       const resp = await response.data;
-      console.log("Response: ", resp);
+      resp.data.forEach((data: Response) => {
+        if (data.assign) {
+          setDictOfVars((prev) => ({
+            ...prev,
+            [data.expr]: data.result,
+          }));
+        }
+
+        setTimeout(() => {
+          setResult({
+            expression: data.expr,
+            answer: data.result,
+          });
+        }, 200);
+      });
     }
   };
 
@@ -145,9 +159,8 @@ export default function Home() {
   };
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing) {
-      return;
-    }
+    if (!isDrawing) return;
+
     const canvas = canvasRef.current;
     if (canvas) {
       const ctx = canvas.getContext("2d");
@@ -164,8 +177,8 @@ export default function Home() {
       <div className="grid grid-cols-3 gap-2">
         <Button
           onClick={() => setReset(true)}
-          className="z-20 bg-black" // bg-black can be kept if needed
-          variant="default" // Ensure this matches the updated default variant
+          className="z-20 bg-black"
+          variant="default"
         >
           Reset
         </Button>
@@ -189,6 +202,7 @@ export default function Home() {
           Calculate
         </Button>
       </div>
+
       <canvas
         ref={canvasRef}
         id="canvas"
@@ -198,6 +212,26 @@ export default function Home() {
         onMouseUp={stopDrawing}
         onMouseMove={draw}
       />
+
+      {latexExpression &&
+        latexExpression.map((latex, index) => (
+          <Draggable
+            key={index}
+            nodeRef={draggableRef}
+            defaultPosition={latexPosition}
+            onStop={(e, data) => setLatexPosition({ x: data.x, y: data.y })}
+          >
+            <div
+              ref={draggableRef}
+              className="absolute p-2 text-white rounded shadow-md"
+            >
+              <div
+                className="latex-content"
+                dangerouslySetInnerHTML={{ __html: latex }}
+              />
+            </div>
+          </Draggable>
+        ))}
     </>
   );
 }

@@ -1,16 +1,16 @@
 const SWATCHES = [
-    "#ffffff", // White
-    "#ff0000", // Red
-    "#00ff00", // Green
-    "#0000ff", // Blue
-    "#ffff00", // Yellow
-    "#ff00ff", // Magenta
-    "#00ffff", // Cyan
-    "#808080", // Gray
-    "#800000", // Maroon
-    "#008000", // Dark Green
-    "#000080", // Navy
-    "#ffc0cb", // Pink
+    "#000000",  // black
+    "#ffffff",  // white
+    "#ee3333",  // red
+    "#e64980",  // pink
+    "#be4bdb",  // purple
+    "#893200",  // brown
+    "#228be6",  // blue
+    "#3333ee",  // dark blue
+    "#40c057",  // green
+    "#00aa00",  // dark green
+    "#fab005",  // yellow
+    "#fd7e14",  // orange
 ];
-
-export {SWATCHES};
+  
+export { SWATCHES };
