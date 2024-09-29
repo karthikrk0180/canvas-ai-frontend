@@ -1,51 +1,75 @@
-# React + TypeScript + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# Canvas AI Frontend
 
-Currently, two official plugins are available:
+Canvas AI is a modern web application designed to enhance user interaction with artificial intelligence tools, providing a seamless experience for visual content generation and management.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Table of Contents
+- [Technologies](#technologies)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [API Integration](#api-integration)
+- [Environment Variables](#environment-variables)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
 
-## Expanding the ESLint configuration
+## Technologies
+This project utilizes the following technologies:
+- **React.js**: A JavaScript library for building user interfaces.
+- **TypeScript**: A typed superset of JavaScript that compiles to plain JavaScript.
+- **Vite**: A fast build tool and development server.
+- **Tailwind CSS**: A utility-first CSS framework for styling.
+- **React Router**: For routing and navigation within the application.
+- **@mantine/core**: A React component library for faster UI development.
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+## Features
+- User-friendly interface for AI-driven content generation.
+- Integration with backend services for data management.
 
-- Configure the top-level `parserOptions` property like this:
+## Installation
+To get started with the Canvas AI frontend application, follow these steps:
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/karthikrk0180/canvas-ai-frontend.git
+   cd canvas-ai-frontend
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+## Usage
+To run the application locally, use the following command:
+```bash
+npm run dev
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+## API Integration
+Ensure your frontend is correctly configured to call the API endpoints from the backend. Update the API URLs in your React code to point to your backend URL.
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+## Environment Variables
+Create a `.env.local` file in the root of the project to store sensitive information. Add your environment variables in the following format:
 ```
-"# Canvas---AI" 
+REACT_APP_API_URL=backend-API
+```
+Replace the API once backend is deployed
+
+## Deployment
+The application is deployed using Render. Ensure that your backend API is running and accessible.
+
+1. Build the application:
+   ```bash
+   npm run build
+   ```
+
+2. Deploy to your chosen platform following their specific deployment instructions.
+
+## Contributing
+Contributions are welcome! Please feel free to submit a pull request or create an issue for any bugs or enhancements.
+
+
+
+Feel free to modify any sections or add more specific details relevant to your project!
