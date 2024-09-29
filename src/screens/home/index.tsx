@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { SWATCHES } from "../../../constants";
 import { ColorSwatch, Group } from "@mantine/core";
 import { Button } from "../../components/ui/button"; // Adjust the path as needed
-import Draggable from "react-draggable";
+// import Draggable from "react-draggable";
 import axios from "axios";
+import '../../index.css';
 
 interface Response {
   expr: string;
@@ -18,13 +19,11 @@ interface GeneratedResult {
 
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const draggableRef = useRef<HTMLDivElement>(null);
+  // const draggableRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [color, setColor] = useState("rgb(255,255,255)");
   const [reset, setReset] = useState(false);
   const [result, setResult] = useState<GeneratedResult>();
-  const [latexExpression, setLatexExpression] = useState<Array<string>>([]);
-  const [latexPosition, setLatexPosition] = useState({ x: 10, y: 200 });
   const [dicOfVars, setDictOfVars] = useState({});
 
   useEffect(() => {
@@ -33,101 +32,84 @@ export default function Home() {
     if (canvas) {
       const ctx = canvas.getContext("2d");
       if (ctx) {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        // Set canvas size to full screen minus 20px padding
+        canvas.width = window.innerWidth - 40; // 20px padding on each side
+        canvas.height = window.innerHeight - 40; // 20px padding on each side
         ctx.lineCap = "round";
         ctx.lineWidth = 3;
       }
     }
 
-    // Load MathJax
-    const script = document.createElement("script");
-    script.src =
-      "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-MML-AM_CHTML";
-    script.async = true;
-    document.head.appendChild(script);
-
-    script.onload = () => {
-      window.MathJax.Hub.Config({
-        tex2jax: {
-          inlineMath: [
-            ["$", "$"],
-            ["\\(", "\\)"],
-          ],
-        },
-      });
-    };
-
     return () => {
-      document.head.removeChild(script);
+      // Cleanup code if necessary
     };
   }, []);
 
   useEffect(() => {
-    if (latexExpression.length > 0 && window.MathJax) {
-      setTimeout(() => {
-        window.MathJax.Hub.Queue(["Typeset", window.MathJax.Hub]);
-      }, 0);
-    }
-  }, [latexExpression]);
-
-  useEffect(() => {
     if (reset) {
       resetCanvas();
-      setLatexExpression([]);
       setResult(undefined);
       setDictOfVars({});
       setReset(false);
     }
   }, [reset]);
 
-  useEffect(() => {
-    if (result) {
-      renderLatexToCanvas(result.expression, result.answer);
-    }
-  }, [result]);
-
-  const renderLatexToCanvas = (expression: string, answer: string) => {
-    const latex = `\\(\\LARGE{${expression} = ${answer}}\\)`;
-    setLatexExpression((prev) => [...prev, latex]);
-
+  const renderResponseToCanvas = (expression: string, answer: string) => {
     const canvas = canvasRef.current;
     if (canvas) {
       const ctx = canvas.getContext("2d");
       if (ctx) {
+        // Clear the canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Set text properties
+        ctx.fillStyle = "white"; // Set text color
+        ctx.font = "24px Arial"; // Set font size and family
+        ctx.fillText(`Expression: ${expression}`, 10, 30); // Draw expression
+        ctx.fillText(`Answer: ${answer}`, 10, 60); // Draw answer
       }
     }
   };
+
+  useEffect(() => {
+    if (result) {
+      renderResponseToCanvas(result.expression, result.answer);
+    }
+  }, [result]);
 
   const sendData = async () => {
     const canvas = canvasRef.current;
 
     if (canvas) {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/calculate`,
-        {
-          image: canvas.toDataURL("image/png"),
-          dict_of_vars: dicOfVars,
-        }
-      );
+      try {
+        const response = await axios.post(
+          `${import.meta.env.VITE_API_URL}/calculate`,
+          {
+            image: canvas.toDataURL("image/png"),
+            dict_of_vars: dicOfVars,
+          }
+        );
 
-      const resp = await response.data;
-      resp.data.forEach((data: Response) => {
-        if (data.assign) {
-          setDictOfVars((prev) => ({
-            ...prev,
-            [data.expr]: data.result,
-          }));
-        }
+        const resp = await response.data;
 
-        setTimeout(() => {
-          setResult({
-            expression: data.expr,
-            answer: data.result,
-          });
-        }, 200);
-      });
+        resp.data.forEach((data: Response) => {
+          if (data.assign) {
+            setDictOfVars((prev) => ({
+              ...prev,
+              [data.expr]: data.result,
+            }));
+          }
+
+          setTimeout(() => {
+            setResult({
+              expression: data.expr,
+              answer: data.result,
+            });
+          }, 200);
+        });
+      } catch (error) {
+        console.error("Error sending data:", error); // Log errors if any
+      }
     }
   };
 
@@ -174,64 +156,50 @@ export default function Home() {
 
   return (
     <>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="flex flex-wrap gap-2 p-5 items-center justify-evenly">
         <Button
           onClick={() => setReset(true)}
-          className="z-20 bg-black"
+          className="border border-black p-2 bg-white text-black hover:bg-black hover:text-white"
           variant="default"
         >
           Reset
         </Button>
 
-        <Group className="z-20">
+        <Group className="space-x-2">
           {SWATCHES.map((swatchColor: string) => (
             <ColorSwatch
               key={swatchColor}
               color={swatchColor}
               onClick={() => setColor(swatchColor)}
+              size={32}
             />
           ))}
         </Group>
 
         <Button
           onClick={sendData}
-          className="z-20 bg-black text-white"
+          className="border border-black p-2 bg-white text-black hover:bg-black hover:text-white"
           variant="default"
-          color="white"
         >
           Calculate
         </Button>
       </div>
 
-      <canvas
-        ref={canvasRef}
-        id="canvas"
-        className="absolute top-0 left-0 w-full h-full"
-        onMouseDown={startDrawing}
-        onMouseOut={stopDrawing}
-        onMouseUp={stopDrawing}
-        onMouseMove={draw}
-      />
-
-      {latexExpression &&
-        latexExpression.map((latex, index) => (
-          <Draggable
-            key={index}
-            nodeRef={draggableRef}
-            defaultPosition={latexPosition}
-            onStop={(e, data) => setLatexPosition({ x: data.x, y: data.y })}
-          >
-            <div
-              ref={draggableRef}
-              className="absolute p-2 text-white rounded shadow-md"
-            >
-              <div
-                className="latex-content"
-                dangerouslySetInnerHTML={{ __html: latex }}
-              />
-            </div>
-          </Draggable>
-        ))}
+      <div className="flex justify-center items-center min-h-screen">
+        <canvas
+          ref={canvasRef}
+          id="canvas"
+          className="rounded-lg bg-black border-2 border-gray-600"
+          onMouseDown={startDrawing}
+          onMouseOut={stopDrawing}
+          onMouseUp={stopDrawing}
+          onMouseMove={draw}
+          style={{ 
+            width: `calc(100vw - 40px)`, // 20px padding from each side
+            height: `calc(100vh - 40px)`  // 20px padding from each side
+          }} 
+        />
+      </div>
     </>
   );
 }

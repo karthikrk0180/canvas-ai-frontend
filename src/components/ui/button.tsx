@@ -9,7 +9,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-white hover:bg-primary/90", // Change here
+        default: "bg-primary hover:bg-primary/90 border border-black", // Added black border here
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline:
@@ -20,10 +20,10 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
+        default: "h-10 w-20 px-4 py-2",  // Default padding for standard size
+        sm: "h-9 rounded-md px-3",  // Smaller padding
+        lg: "h-11 rounded-md px-8", // Larger padding
+        icon: "h-10 w-10",          // Icon size button
       },
     },
     defaultVariants: {
@@ -44,7 +44,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const Comp = asChild ? Slot : "button";
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(buttonVariants({ variant, size, className }))}  // Combines variant, size, and className
         ref={ref}
         {...props}
       />
