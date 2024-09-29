@@ -5,6 +5,7 @@ import { Button } from "../../components/ui/button"; // Adjust the path as neede
 // import Draggable from "react-draggable";
 import axios from "axios";
 import '../../index.css';
+import React from "react";
 
 interface Response {
   expr: string;
