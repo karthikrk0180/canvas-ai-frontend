@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { SWATCHES } from "../../../constants";
 import { ColorSwatch, Group } from "@mantine/core";
 import { Button } from "../../components/ui/button";
-import { Pen } from 'lucide-react';
+import { Pen, Eraser, X, Brain } from 'lucide-react';
 import axios from "axios";
 import '../../index.css';
 
 type StrokeWidth = 'Thin' | 'Medium' | 'Thick';
+type Tool = 'pen' | 'eraser';
 
 const STROKE_MAP: Record<StrokeWidth, number> = {
   Thin: 2,
@@ -14,9 +15,16 @@ const STROKE_MAP: Record<StrokeWidth, number> = {
   Thick: 10,
 };
 
+const ERASER_MAP: Record<StrokeWidth, number> = {
+  Thin: 10,
+  Medium: 20,
+  Thick: 40,
+};
+
 interface AnalysisResult {
   expr: string;
   result: string;
+  mental_health_rating?: number;
   isError?: boolean;
 }
 
@@ -25,11 +33,13 @@ export default function Home() {
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   
+  const [tool, setTool] = useState<Tool>('pen');
   const [color, setColor] = useState("rgb(0,0,0)");
   const [stroke, setStroke] = useState<StrokeWidth>('Thin');
 
   const [dicOfVars, setDictOfVars] = useState({});
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [showResultModal, setShowResultModal] = useState(false);
 
   const clearCanvas = () => {
     const canvas = canvasRef.current;
@@ -41,6 +51,7 @@ export default function Home() {
       }
     }
     setAnalysisResult(null);
+    setShowResultModal(false);
   }
 
   useEffect(() => {
@@ -73,6 +84,7 @@ export default function Home() {
     const canvas = canvasRef.current;
     if (canvas) {
       setAnalysisResult({ expr: "Analyzing...", result: "Please wait while the AI processes your drawing."});
+      setShowResultModal(true);
       try {
         const response = await axios.post(
           `${import.meta.env.VITE_API_URL}/calculate`,
@@ -85,9 +97,13 @@ export default function Home() {
         const resp = await response.data;
         if (resp.data && resp.data.length > 0) {
             const firstResult = resp.data[0];
-            setAnalysisResult({ expr: firstResult.expr, result: firstResult.result });
+            setAnalysisResult({ 
+                expr: firstResult.expr, 
+                result: firstResult.result,
+                mental_health_rating: firstResult.mental_health_rating
+            });
 
-            resp.data.forEach((data: { assign: boolean, expr: string, result: string }) => {
+            resp.data.forEach((data: { assign: boolean, expr: string, result: string, mental_health_rating?: number }) => {
                 if (data.assign) {
                     setDictOfVars((prev) => ({ ...prev, [data.expr]: data.result }));
                 }
@@ -105,6 +121,7 @@ export default function Home() {
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     setAnalysisResult(null);
+    setShowResultModal(false);
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -157,65 +174,105 @@ export default function Home() {
 
     const ctx = canvas.getContext("2d");
     if (ctx) {
-      ctx.lineWidth = STROKE_MAP[stroke];
-      ctx.strokeStyle = color;
-      ctx.lineCap = "round";
-      ctx.lineTo(offsetX, offsetY);
-      ctx.stroke();
+      if (tool === 'pen') {
+        // Pen tool - draw with selected color
+        ctx.lineWidth = STROKE_MAP[stroke];
+        ctx.strokeStyle = color;
+        ctx.lineCap = "round";
+        ctx.lineTo(offsetX, offsetY);
+        ctx.stroke();
+      } else if (tool === 'eraser') {
+        ctx.lineWidth = ERASER_MAP[stroke];
+        ctx.strokeStyle = "white";
+        ctx.lineCap = "round";
+        ctx.lineTo(offsetX, offsetY);
+        ctx.stroke()
+      }
     }
+  };
+
+  const getRatingColor = (rating: number) => {
+    if (rating >= 7) return { bg: 'bg-green-500', text: 'text-green-600', border: 'border-green-200' };
+    if (rating >= 5) return { bg: 'bg-yellow-500', text: 'text-yellow-600', border: 'border-yellow-200' };
+    return { bg: 'bg-red-500', text: 'text-red-600', border: 'border-red-200' };
+  };
+
+  const getRatingLabel = (rating: number) => {
+    if (rating >= 9) return 'Excellent';
+    if (rating >= 7) return 'Good';
+    if (rating >= 5) return 'Moderate';
+    if (rating >= 3) return 'Poor';
+    return 'Critical';
   };
 
   return (
     <div className="h-dvh bg-gray-100 flex flex-col p-4">
       <div className="flex-1 flex flex-col gap-4 min-h-0">
+
         {/* Unified header and toolbar */}
         <header className="bg-white rounded-lg shadow-md border border-gray-200 p-4 space-y-4">
-            {/* Top section: Title and Result */}
-            <div className="flex flex-col md:flex-row justify-between md:items-start gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Drawing Canvas</h1>
-                    <p className="text-sm text-gray-500">Sketch your ideas and use AI to analyze your drawings</p>
-                </div>
-                {analysisResult && (
-                    <div className={`text-sm rounded-lg p-3 w-full md:w-1/2 lg:w-1/3 ${
-                        analysisResult.isError 
-                        ? 'bg-red-50 border-red-200 text-red-700' 
-                        : 'bg-blue-50 border-blue-200 text-blue-700'
-                    }`}>
-                        <p className="font-semibold">{analysisResult.expr}</p>
-                        <p>{analysisResult.result}</p>
-                    </div>
-                )}
+            {/* Top section: Title */}
+            <div className="flex flex-col items-center justify-center">
+                <h1 className="text-2xl font-bold text-gray-800">Draw What You Feel!</h1>
+                <p className="text-sm text-gray-500">Create sketches and let AI decode their meaning</p>
             </div>
 
             <hr className="border-gray-200" />
 
             {/* Bottom section: Toolbar */}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 md:gap-x-6">
+                {/* Tools */}
                 <div className="flex items-center gap-2">
-                    <Pen size={20} className="text-gray-600" />
-                    <span className="text-sm font-medium text-gray-700 hidden sm:inline">Pen Tool</span>
+                    <Button
+                        variant={tool === 'pen' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setTool('pen')}
+                        className={tool === 'pen' ? "bg-blue-500 text-white" : "text-gray-600"}
+                    >
+                        <Pen size={16} className="mr-1" />
+                        <span className="hidden sm:inline">Pen</span>
+                    </Button>
+                    <Button
+                        variant={tool === 'eraser' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setTool('eraser')}
+                        className={tool === 'eraser' ? "bg-red-500 text-white" : "text-gray-600"}
+                    >
+                        <Eraser size={16} className="mr-1" />
+                        <span className="hidden sm:inline">Eraser</span>
+                    </Button>
                 </div>
+                
                 <div className="h-6 w-px bg-gray-200 hidden md:block"></div>
-                <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-gray-700 hidden sm:inline">Colors:</span>
-                    <Group>
-                        {SWATCHES.map((swatchColor) => (
-                        <ColorSwatch
-                            key={swatchColor}
-                            color={swatchColor}
-                            onClick={() => setColor(swatchColor)}
-                            size={24}
-                            className={`cursor-pointer rounded-full transition-all duration-200 ${
-                            color === swatchColor ? 'ring-2 ring-blue-500 ring-offset-1 ring-offset-white' : 'hover:opacity-80'
-                            }`}
-                        />
-                        ))}
-                    </Group>
-                </div>
-                <div className="h-6 w-px bg-gray-200 hidden md:block"></div>
+                
+                {/* Colors - only show when pen tool is selected */}
+                {tool === 'pen' && (
+                    <>
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm font-medium text-gray-700 hidden sm:inline">Colors:</span>
+                            <Group>
+                                {SWATCHES.map((swatchColor) => (
+                                <ColorSwatch
+                                    key={swatchColor}
+                                    color={swatchColor}
+                                    onClick={() => setColor(swatchColor)}
+                                    size={24}
+                                    className={`cursor-pointer rounded-full transition-all duration-200 ${
+                                    color === swatchColor ? 'ring-2 ring-blue-500 ring-offset-1 ring-offset-white' : 'hover:opacity-80'
+                                    }`}
+                                />
+                                ))}
+                            </Group>
+                        </div>
+                        <div className="h-6 w-px bg-gray-200 hidden md:block"></div>
+                    </>
+                )}
+                
+                {/* Size controls */}
                 <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-700 hidden sm:inline">Stroke:</span>
+                    <span className="text-sm font-medium text-gray-700 hidden sm:inline">
+                        {tool === 'pen' ? 'Stroke:' : 'Size:'}
+                    </span>
                     {(['Thin', 'Medium', 'Thick'] as StrokeWidth[]).map((strokeWidth) => (
                         <Button 
                             key={strokeWidth}
@@ -223,14 +280,16 @@ export default function Home() {
                             size="sm"
                             onClick={() => setStroke(strokeWidth)}
                             className={stroke === strokeWidth 
-                                ? "bg-blue-500 text-white border-blue-500" 
+                                ? tool === 'pen' ? "bg-blue-500 text-white border-blue-500" : "bg-red-500 text-white border-red-500"
                                 : "text-gray-600 border-gray-200 hover:bg-gray-50"}
                         >
                             {strokeWidth}
                         </Button>
                     ))}
                 </div>
+                
                 <div className="flex-grow"></div>
+                
                 <div className="flex items-center gap-2">
                     <Button
                         onClick={clearCanvas}
@@ -260,6 +319,96 @@ export default function Home() {
             onTouchMove={draw}
             />
         </main>
+
+        {/* Result Modal */}
+        {showResultModal && analysisResult && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className={`bg-white rounded-2xl shadow-2xl max-w-md w-full relative overflow-hidden ${
+              analysisResult.isError ? 'border-red-200' : 'border-blue-200'
+            } border-2`}>
+              
+              {/* Close Button */}
+              <button 
+                onClick={() => setShowResultModal(false)}
+                className="absolute top-4 right-4 z-10 p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X size={20} className="text-gray-500" />
+              </button>
+
+              {/* Rating Circle - Top Right */}
+              {analysisResult.mental_health_rating && (
+                <div className="absolute top-4 right-16 z-10">
+                  <div className={`w-16 h-16 rounded-full ${getRatingColor(analysisResult.mental_health_rating).bg} flex items-center justify-center shadow-lg`}>
+                    <div>
+                      <div className="text-white font-bold text-lg">{analysisResult.mental_health_rating}</div>
+                      <div className="text-white text-xs opacity-90">/10</div>
+                    </div>
+                  </div>
+                  <div className={`text-xs font-medium text-center mt-1 ${getRatingColor(analysisResult.mental_health_rating).text}`}>
+                    {getRatingLabel(analysisResult.mental_health_rating)}
+                  </div>
+                </div>
+              )}
+
+              {/* Header */}
+              <div className="p-6 pb-4">
+                <div className="flex items-center gap-3 mb-3">
+                  {analysisResult.isError ? (
+                    <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                      <X size={20} className="text-red-600" />
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Brain size={20} className="text-blue-600" />
+                    </div>
+                  )}
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-800">
+                      {analysisResult.isError ? 'Analysis Error' : 'AI Analysis Result'}
+                    </h2>
+                    <p className="text-sm text-gray-500">
+                      {analysisResult.isError ? 'Something went wrong' : 'Your drawing has been analyzed'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 pb-6">
+                <div className={`p-4 rounded-lg ${
+                  analysisResult.isError 
+                    ? 'bg-red-50 border border-red-200' 
+                    : 'bg-blue-50 border border-blue-200'
+                }`}>
+                  <h3 className="font-semibold text-gray-800 mb-2">
+                    {analysisResult.expr}
+                  </h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    {analysisResult.result}
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 mt-6">
+                  <Button
+                    onClick={() => setShowResultModal(false)}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    onClick={clearCanvas}
+                    className="flex-1 bg-blue-500 text-white hover:bg-blue-600"
+                  >
+                    New Drawing
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
