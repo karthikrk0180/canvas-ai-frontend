@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { SWATCHES } from "../../../constants";
-import { ColorSwatch, Group } from "@mantine/core";
 import { Button } from "../../components/ui/button";
 import { Pen, Eraser, X, Brain } from 'lucide-react';
 import axios from "axios";
@@ -206,100 +205,117 @@ export default function Home() {
   };
 
   return (
-    <div className="h-dvh bg-gray-100 flex flex-col p-4">
+    <div className="h-dvh bg-gradient-to-br from-purple-200 via-blue-100 to-pink-100 flex flex-col p-4">
       <div className="flex-1 flex flex-col gap-4 min-h-0">
 
-        {/* Unified header and toolbar */}
-        <header className="bg-white rounded-lg shadow-md border border-gray-200 p-4 space-y-4">
-            {/* Top section: Title */}
-            <div className="flex flex-col items-center justify-center">
-                <h1 className="text-2xl font-bold text-gray-800">Draw What You Feel!</h1>
+      {/* Top section: Title */}
+            <div className="flex flex-col items-center justify-center mt-3 text-xl">
+                <h1 className="text-2xl font-bold text-gray-800 mb-1">Draw What You Feel!</h1>
                 <p className="text-sm text-gray-500">Create sketches and let AI decode their meaning</p>
             </div>
 
-            <hr className="border-gray-200" />
-
-            {/* Bottom section: Toolbar */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 md:gap-x-6">
-                {/* Tools */}
-                <div className="flex items-center gap-2">
+        {/* Unified header and toolbar */}
+        <header className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
+            {/* Toolbar Section - Centered with proper div structure */}
+            <div className="flex w-full justify-evenly items-center">
+                {/* Left Section: Tools */}
+                <div className="flex items-center gap-3 py-2">
                     <Button
                         variant={tool === 'pen' ? 'default' : 'outline'}
-                        size="sm"
                         onClick={() => setTool('pen')}
-                        className={tool === 'pen' ? "bg-blue-500 text-white" : "text-gray-600"}
+                        className={`flex items-center gap-2 px-8 py-2 ${
+                            tool === 'pen' 
+                                ? "bg-gray-800 text-white hover:bg-gray-700" 
+                                : "text-gray-600 border-gray-300 hover:bg-gray-50"
+                        }`}
                     >
-                        <Pen size={16} className="mr-1" />
-                        <span className="hidden sm:inline">Pen</span>
+                        <Pen size={16} />
+                        Pen
                     </Button>
+                    
                     <Button
                         variant={tool === 'eraser' ? 'default' : 'outline'}
-                        size="sm"
                         onClick={() => setTool('eraser')}
-                        className={tool === 'eraser' ? "bg-red-500 text-white" : "text-gray-600"}
+                        className={`flex items-center gap-2 px-5 py-2 ${
+                            tool === 'eraser' 
+                                ? "bg-gray-800 text-white hover:bg-gray-700" 
+                                : "text-gray-600 border-gray-300 hover:bg-gray-50"
+                        }`}
                     >
-                        <Eraser size={16} className="mr-1" />
-                        <span className="hidden sm:inline">Eraser</span>
+                        <Eraser size={16} />
+                        Eraser
                     </Button>
-                </div>
-                
-                <div className="h-6 w-px bg-gray-200 hidden md:block"></div>
-                
-                {/* Colors - only show when pen tool is selected */}
-                {tool === 'pen' && (
-                    <>
-                        <div className="flex items-center gap-3">
-                            <span className="text-sm font-medium text-gray-700 hidden sm:inline">Colors:</span>
-                            <Group>
-                                {SWATCHES.map((swatchColor) => (
-                                <ColorSwatch
-                                    key={swatchColor}
-                                    color={swatchColor}
-                                    onClick={() => setColor(swatchColor)}
-                                    size={24}
-                                    className={`cursor-pointer rounded-full transition-all duration-200 ${
-                                    color === swatchColor ? 'ring-2 ring-blue-500 ring-offset-1 ring-offset-white' : 'hover:opacity-80'
-                                    }`}
-                                />
-                                ))}
-                            </Group>
-                        </div>
-                        <div className="h-6 w-px bg-gray-200 hidden md:block"></div>
-                    </>
-                )}
-                
-                {/* Size controls */}
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-700 hidden sm:inline">
-                        {tool === 'pen' ? 'Stroke:' : 'Size:'}
-                    </span>
-                    {(['Thin', 'Medium', 'Thick'] as StrokeWidth[]).map((strokeWidth) => (
-                        <Button 
-                            key={strokeWidth}
-                            variant={stroke === strokeWidth ? 'default': 'outline'}
-                            size="sm"
-                            onClick={() => setStroke(strokeWidth)}
-                            className={stroke === strokeWidth 
-                                ? tool === 'pen' ? "bg-blue-500 text-white border-blue-500" : "bg-red-500 text-white border-red-500"
-                                : "text-gray-600 border-gray-200 hover:bg-gray-50"}
-                        >
-                            {strokeWidth}
-                        </Button>
-                    ))}
-                </div>
-                
-                <div className="flex-grow"></div>
-                
-                <div className="flex items-center gap-2">
+
                     <Button
                         onClick={clearCanvas}
                         variant="outline"
+                        className="px-4 py-2 text-gray-500 border-gray-300 hover:bg-gray-50"
+                        disabled={false}
                     >
                         Reset
                     </Button>
-                    <Button onClick={sendData} className="bg-blue-500 text-white hover:bg-blue-600">
-                        Calculate
+                </div>
+
+                {/* Center Section: Colors (only show when pen tool is selected) */}
+                {tool === 'pen' && (
+                    <div className="flex items-center justify-center gap-2">
+                        <span className="text-sm font-medium text-gray-700">colors:</span>
+                        <div className="flex items-center gap-2 ml-2">
+                            {SWATCHES.map((swatchColor) => (
+                                <div
+                                    key={swatchColor}
+                                    onClick={() => setColor(swatchColor)}
+                                    className={`w-8 h-8 rounded-full cursor-pointer border-2 transition-all duration-200 ${
+                                        color === swatchColor 
+                                            ? 'border-gray-800 ring-2 ring-gray-300' 
+                                            : 'border-gray-200 hover:border-gray-400'
+                                    }`}
+                                    style={{ backgroundColor: swatchColor }}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Right Section: Analyze Button and Stroke Controls */}
+                <div className="flex items-center gap-4">
+                    <Button 
+                        onClick={sendData} 
+                        className="bg-blue-500 text-white hover:bg-blue-600 px-8 py-2 font-medium"
+                    >
+                        Analyse
                     </Button>
+
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-700">Stroke:</span>
+                        <div className="flex items-center gap-1 ml-2">
+                            {(['Thin', 'Medium', 'Thick'] as StrokeWidth[]).map((strokeWidth) => (
+                                <label key={strokeWidth} className="flex items-center cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="stroke"
+                                        checked={stroke === strokeWidth}
+                                        onChange={() => setStroke(strokeWidth)}
+                                        className="sr-only"
+                                    />
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                                        stroke === strokeWidth 
+                                            ? 'border-gray-800 bg-gray-800' 
+                                            : 'border-gray-300 hover:border-gray-400'
+                                    }`}>
+                                        {stroke === strokeWidth && (
+                                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                                        )}
+                                    </div>
+                                    <span className={`ml-2 text-sm ${
+                                        stroke === strokeWidth ? 'text-gray-800 font-medium' : 'text-gray-600'
+                                    }`}>
+                                        {strokeWidth}
+                                    </span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
         </header>
